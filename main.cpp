@@ -1,5 +1,8 @@
-#include <QTimer>
 #include <QApplication>
+#include <QMainWindow>
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QPushButton>
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QGraphicsEllipseItem>
@@ -8,6 +11,8 @@
 #include <QPen>
 #include <QBrush>
 #include <QFont>
+#include <QTimer>
+#include <QEventLoop>
 #include <vector>
 #include <iostream>
 #include <cmath>
@@ -74,6 +79,57 @@ void addText(QString text, NodeItem* node) {
     itemText->setZValue(2); 
 }
 
+class mainWindow : public QMainWindow {
+public:
+    mainWindow(const std::vector<NodeItem*>& nodesRef, const std::vector<std::vector<int>>& adjRef) : nodes(nodesRef), adj(adjRef) {
+        
+        QWidget* centralWidget = new QWidget(this);
+        QVBoxLayout* layout = new QVBoxLayout(centralWidget);
+
+        QPushButton* btnRun = new QPushButton("RUN ALGORITHM", this);
+        btnRun->setStyleSheet("font-size: 16px; font-weight: bold; padding: 10px; background-color: #4CAF50; color: white;");
+        
+        connect(btnRun, &QPushButton::clicked, this, &mainWindow::startAlgorithm);
+
+        layout->addWidget(btnRun);
+        
+        setCentralWidget(centralWidget);
+        resize(650, 700);
+    }
+
+    void startAlgorithm() {
+        QPushButton* btn = findChild<QPushButton*>();
+        if(btn) btn->setEnabled(false);
+
+        algorithmVisualize(nodes, adj, 1);
+        
+        if(btn) btn->setEnabled(true);
+    }
+
+private:
+    const std::vector<NodeItem*>& nodes;
+    const std::vector<std::vector<int>>& adj;
+
+    void algorithmVisualize(const std::vector<NodeItem*>& nodes, const std::vector<std::vector<int>>& adj, int node, int previousNode = 0) {
+
+        nodes[node]->setBrush(QBrush(Qt::red));
+        if (nodes[node]->scene()) nodes[node]->scene()->update();
+
+        QEventLoop loop;
+        QTimer::singleShot(1000, &loop, &QEventLoop::quit);
+        loop.exec(); 
+
+        for (auto u : adj[node]) {
+            if (u == previousNode) continue;
+            algorithmVisualize(nodes, adj, u, node);
+        }
+
+        nodes[node]->setBrush(QBrush(Qt::gray));
+        if (nodes[node]->scene()) nodes[node]->scene()->update();
+    }
+};
+
+
 int main(int argc, char *argv[]) {
     int N, M;
     if (!(std::cin >> N >> M)) {
@@ -119,10 +175,24 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    QGraphicsView view(scene); 
-    view.setRenderHint(QPainter::Antialiasing); 
-    view.resize(650, 650);
-    view.show();
+    std::vector<std::vector<int>> adj(N + 1);
+    for (int i = 0; i < M; ++i) {
+        adj[edges[i][0]].push_back(edges[i][1]);
+        adj[edges[i][1]].push_back(edges[i][0]);
+    }
+
+    QGraphicsView* view = new QGraphicsView(scene);
+    view->setRenderHint(QPainter::Antialiasing); 
+    
+    mainWindow window(nodes, adj);
+    
+    QWidget* central = window.centralWidget();
+    QVBoxLayout* layout = qobject_cast<QVBoxLayout*>(central->layout());
+    if (layout) {
+        layout->addWidget(view);
+    }
+
+    window.show();
 
     return app.exec();
 }
