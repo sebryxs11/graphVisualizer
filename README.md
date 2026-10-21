@@ -16,6 +16,8 @@ u_M v_M
 
 where N is the number of nodes, M the number of edges and there is a edge between nodes u_i and v_i for every 1 <= i <= M.
 
+Now, if you want to change or add to the displayed algorithm, just modify the funcion "algorithmVisualize".
+
 ## Prerequisites
 
 To build this project, you need C++17, CMake and Qt6.
